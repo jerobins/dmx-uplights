@@ -1,0 +1,1 @@
+@reboot /home/pi/bin/dmx-control/bin/reboot.sh
