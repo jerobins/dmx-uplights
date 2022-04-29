@@ -174,6 +174,7 @@ class mystat:
       temp_config['name'] = self.deviceName + " Temperature"
       temp_config['state_topic'] = stateTopic
       temp_config['unit_of_measurement'] = "°C"
+      temp_config['device_class'] = "temperature"
       temp_config['value_template'] = "{{ value_json.temperature }}"
 
       self.client.publish(topic=temp_config_topic, payload=temp_config, 

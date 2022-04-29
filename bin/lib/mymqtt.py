@@ -145,5 +145,7 @@ class mymqtt:
 
       self.do_connect()
 
-      self.stats = mystat.mystat(self)
+      if (config['main'].getboolean('stats', fallback=True)):
+        self.stats = mystat.mystat(self)
+
       return

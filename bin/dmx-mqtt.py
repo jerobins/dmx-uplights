@@ -5,6 +5,7 @@ import webcolors, colorsys
 import sys, configparser
 import simplejson as json
 import lib.mymqtt as mymqtt
+import sacn
 
 # 
 # Clamp values between a range - inclusive
@@ -162,6 +163,13 @@ class DMXController:
    def sceneRGB(self, r, g, b, d=255):
       saveParams = {'dimmer': d, 'red': r, 'green': g, 'blue': b}
       self.__dict__.update((key, value) for key, value in iter(saveParams.items()))
+      for par in self.fixtures:
+         par.setRGB(r, g, b, d)
+      self.render()
+      self.effect = ''
+
+   # Set all fixtures to a single color by RGB color space, but do NOT save params
+   def renderRGB(self, r, g, b, d=255):
       for par in self.fixtures:
          par.setRGB(r, g, b, d)
       self.render()
@@ -329,14 +337,28 @@ def main():
          par1 = mydmx.addPar(10)
          par2 = mydmx.addPar(20)
          mydmx.render()
-         # set white as preset so turn 'ON' works as expected
+         # set white as preset to turn 'ON' works as expected
          mydmx.sceneColor('white')
          mydmx.off()
 
          client = mymqtt.mymqtt(config, mydmx)
+         client.loop_start()
+
+         receiver = sacn.sACNreceiver()
+         receiver.start()  # start the receiving thread
+
+         # define a callback function
+         @receiver.listen_on('universe', universe=1)  # listens on universe 1
+         def callback(packet):  # packet type: sacn.DataPacket
+            r,g,b = packet.dmxData[0:3]
+            mydmx.renderRGB(r,g,b)
+
+         @receiver.listen_on('availability') # what is the status?
+         def e131_avail(universe, changed): # universe number and changed state
+            if (changed == 'timeout'):
+               mydmx.on()
 
          # Wait forever for msgs
-         client.loop_forever()
 
       except:
          mydmx.off()
